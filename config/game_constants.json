@@ -1,0 +1,86 @@
+{
+  "game": {
+    "simulationSpeed": 1,
+    "tickRateMs": 1000,
+    "daysPerTick": 1,
+    "portStopHours": 6
+  },
+  "economy": {
+    "weeklyDays": 7,
+    "monthDays": 30,
+    "yearMonths": 12
+  },
+  "pricing": {
+    "priceElasticityFactor": 1.0,
+    "marginalPricingEnabled": true
+  },
+  "population": {
+    "immigrationRatePoor": 0.002,
+    "immigrationRateMiddle": 0.001,
+    "immigrationRateRich": 0.0005,
+    "beggarGenerationRate": 0.0005,
+    "housingOccupancyCapPoor": 0.75,
+    "housingOccupancyCapMiddle": 0.50,
+    "housingOccupancyCapRich": 0.50
+  },
+  "production": {
+    "regionalPenaltyLow": 0.75,
+    "regionalBonusHigh": 1.15,
+    "agglomerationTier1": { "min": 3, "max": 5, "bonus": 1.03 },
+    "agglomerationTier2": { "min": 6, "max": 8, "bonus": 1.06 },
+    "agglomerationTier3": { "min": 9, "max": 999, "bonus": 1.10 },
+    "winterGrainPenalty": 0.67,
+    "winterVineyardPenalty": 0.50,
+    "minFactoryWorkers": 30
+  },
+  "events": {
+    "baseChance": 0.002,
+    "plagueDurationMin": 20,
+    "plagueDurationMax": 50,
+    "plagueDailyReduction": 0.03,
+    "fireIntensityMin": 0.1,
+    "fireIntensityMax": 0.3,
+    "siegeDurationMin": 15,
+    "siegeDurationMax": 35,
+    "siegeConfiscationMin": 0.5,
+    "siegeConfiscationMax": 1.0,
+    "famineDurationMin": 30,
+    "famineDurationMax": 60,
+    "famineGrainThreshold": 100,
+    "famineRiotStolen": 50
+  },
+  "shipyard": {
+    "expPerSnaikka": 15,
+    "expPerCrayer": 25,
+    "expPerCog": 40,
+    "expPerHulk": 60,
+    "upgrade2GoldCost": 3000,
+    "upgrade3GoldCost": 6000,
+    "upgrade2CargoPenalty": 50,
+    "upgrade3CargoPenalty": 100
+  },
+  "combat": {
+    "nsBallisticBonus": 1.30,
+    "ewBallisticPenalty": 0.75,
+    "windMaxPenalty": 0.3,
+    "boardingUnarmedPenalty": 0.1,
+    "interceptChanceBase": 0.3,
+    "captureChanceBase": 0.3,
+    "townRaidRequiredCogsL3": 2,
+    "townRaidRequiredCrayersL3": 1
+  },
+  "politics": {
+    "electionCycleMonths": 12,
+    "bribeDurationMonths": 6,
+    "aldermanRequiredCities": 12,
+    "aldermanRequiredApproval": 80,
+    "aldermanRequiredMissions": 1
+  },
+  "trading": {
+    "officeBuildCostBricks": 60,
+    "officeBuildCostTimber": 20,
+    "officeBuildCostTools": 10,
+    "officeStorageLimit": 5000,
+    "officeDefaultBudget": 0
+  }
+}

@@ -1,0 +1,44 @@
+import { test, expect } from '@playwright/test';
+
+test('New Game -> Enter Lubeck -> Buy Grain flow', async ({ page }) => {
+  // 1. Start from Title Screen
+  await page.goto('/');
+  await expect(page).toHaveTitle(/Hanseatic/);
+  
+  // 2. Click Nueva Campaña
+  const newGameBtn = page.getByTitle('Nueva Campaña');
+  await newGameBtn.click();
+  
+  // 3. Verify we are in City Overview
+  await expect(page).toHaveURL(/\/city-overview/);
+  await expect(page.getByText('LÜBECK')).toBeVisible();
+
+  // 4. Click on Almacén to open radial menu
+  // Using alt text or building name
+  const warehouse = page.getByAltText('Almacén medieval');
+  await warehouse.click();
+
+  // 5. Click the market icon in the radial menu
+  const marketBtn = page.locator('button:has(span:text("store"))');
+  await marketBtn.click();
+
+  // 6. Verify we are in Market Hall
+  await expect(page).toHaveURL(/\/market/);
+  await expect(page.getByText('Lonja del Mercado')).toBeVisible();
+
+  // 7. Buy Grain
+  const grainRow = page.locator('div:has-text("Grain")').filter({ has: page.locator('button:text("COMPRAR")') }).first();
+  const initialGoldText = await page.locator('span.font-mono.font-bold.text-lg').textContent();
+  const initialGold = parseInt(initialGoldText?.replace(/\D/g, '') || '0');
+
+  const buyBtn = grainRow.getByRole('button', { name: 'COMPRAR' });
+  await buyBtn.click();
+
+  // 8. Verify success message and gold reduction
+  await expect(page.getByText('Comprado')).toBeVisible();
+  
+  const finalGoldText = await page.locator('span.font-mono.font-bold.text-lg').textContent();
+  const finalGold = parseInt(finalGoldText?.replace(/\D/g, '') || '0');
+  
+  expect(finalGold).toBeLessThan(initialGold);
+});

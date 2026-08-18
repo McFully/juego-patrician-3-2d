@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-surface: #131407;
+    --color-surface-dim: #131407;
+    --color-surface-bright: #393a29;
+    --color-surface-container-lowest: #0e0f03;
+    --color-surface-container-low: #1b1d0e;
+    --color-surface-container: #1f2111;
+    --color-surface-container-high: #2a2b1b;
+    --color-surface-container-highest: #343625;
+    --color-on-surface: #e4e4cc;
+    --color-on-surface-variant: #c4c6cf;
+    --color-outline: #8e9198;
+    --color-outline-variant: #43474e;
+    --color-primary: #afc8f0;
+    --color-on-primary: #163152;
+    --color-secondary: #77dd6a;
+    --color-tertiary: #eac349;
+    --color-error: #ffb4ab;
+  }
+
+  * {
+    @apply border-outline/20;
+  }
+
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    @apply bg-background text-on-surface font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  #root {
+    display: flex;
+    flex-direction: column;
+  }
+
+  ::selection {
+    @apply bg-tertiary text-on-tertiary;
+  }
+}
+
+@layer components {
+  .isometric-grid {
+    background-image: 
+        linear-gradient(30deg, rgba(212, 175, 55, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(212, 175, 55, 0.05) 87.5%, rgba(212, 175, 55, 0.05)),
+        linear-gradient(150deg, rgba(212, 175, 55, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(212, 175, 55, 0.05) 87.5%, rgba(212, 175, 55, 0.05)),
+        linear-gradient(30deg, rgba(212, 175, 55, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(212, 175, 55, 0.05) 87.5%, rgba(212, 175, 55, 0.05)),
+        linear-gradient(150deg, rgba(212, 175, 55, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(212, 175, 55, 0.05) 87.5%, rgba(212, 175, 55, 0.05)),
+        linear-gradient(60deg, rgba(212, 175, 55, 0.02) 25%, transparent 25.5%, transparent 75%, rgba(212, 175, 55, 0.02) 75.5%, rgba(212, 175, 55, 0.02)),
+        linear-gradient(60deg, rgba(212, 175, 55, 0.02) 25%, transparent 25.5%, transparent 75%, rgba(212, 175, 55, 0.02) 75.5%, rgba(212, 175, 55, 0.02));
+    background-size: 80px 140px;
+  }
+  .radial-wheel {
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.2) 0%, transparent 70%);
+  }
+  .building-hover:hover {
+    filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.8));
+    transform: scale(1.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'liga';
+    
+    /* Absolute text suppression */
+    color: transparent !important;
+    text-shadow: none !important;
+    user-select: none;
+  }
+
+  .glass-panel {
+    @apply backdrop-blur-xl bg-[rgba(0,31,63,0.6)] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)];
+  }
+
+  .glass-panel-heavy {
+    @apply backdrop-blur-2xl bg-[rgba(0,31,63,0.85)] border border-white/15 shadow-[0_20px_40px_rgba(0,0,0,0.3)];
+  }
+
+  .glass-modal {
+    @apply backdrop-blur-2xl bg-primary-container/85 border border-on-surface/10 shadow-[0_20px_40px_rgba(0,0,0,0.3)];
+  }
+
+  .btn-primary {
+    @apply bg-tertiary text-on-tertiary font-label-sm px-md py-sm rounded-lg
+           hover:scale-[1.02] active:scale-[0.98] transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-tertiary-fixed focus:ring-offset-2 focus:ring-offset-surface;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent border-2 border-on-surface/30 text-on-surface font-label-sm px-md py-sm rounded-lg
+           hover:bg-on-surface/10 active:scale-[0.98] transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-tertiary focus:ring-offset-2 focus:ring-offset-surface;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-on-surface-variant font-label-sm px-sm py-xs rounded-lg
+           hover:bg-surface-variant/30 hover:text-tertiary transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-tertiary focus:ring-offset-2 focus:ring-offset-surface;
+  }
+
+  .input-field {
+    @apply w-full bg-primary-container border border-on-surface/20 rounded-lg px-sm py-sm text-on-surface
+           placeholder:text-on-surface-variant/50
+           focus:border-tertiary focus:outline-none focus:ring-1 focus:ring-tertiary transition-all duration-200;
+  }
+
+  .card-base {
+    @apply glass-base p-md rounded-xl border border-on-surface/10;
+  }
+
+  .card-hover {
+    @apply card-base hover:border-tertiary/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition-all duration-300;
+  }
+
+  .stat-bar {
+    @apply w-full h-1.5 bg-surface-container rounded-full overflow-hidden;
+  }
+
+  .stat-bar-fill {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+  }
+
+  .nav-item {
+    @apply flex flex-col items-center justify-center px-md py-xs rounded-xl
+           text-on-surface-variant hover:bg-surface-variant/30 hover:text-tertiary
+           transition-all duration-200 cursor-pointer;
+  }
+
+  .nav-item-active {
+    background-color: var(--tertiary-fixed);
+    color: var(--on-tertiary-fixed);
+    transform: scale(1.02);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .font-label-sm {
+    @apply font-montserrat text-xs font-semibold tracking-wider;
+  }
+
+  .font-headline-sm {
+    @apply font-montserrat text-xl font-black tracking-tight;
+  }
+  .font-headline-md {
+    @apply font-montserrat text-2xl font-black tracking-tight;
+  }
+  .font-headline-lg {
+    @apply font-montserrat text-3xl font-black tracking-tight;
+  }
+  .font-title-sm {
+    @apply font-montserrat text-sm font-semibold tracking-normal;
+  }
+  .font-title-md {
+    @apply font-montserrat text-base font-semibold tracking-normal;
+  }
+  .font-title-lg {
+    @apply font-montserrat text-lg font-semibold tracking-normal;
+  }
+  .font-body-sm {
+    @apply font-montserrat text-xs font-normal leading-relaxed;
+  }
+  .font-body-md {
+    @apply font-montserrat text-sm font-normal leading-relaxed;
+  }
+  .font-body-lg {
+    @apply font-montserrat text-base font-normal leading-relaxed;
+  }
+
+  .glyph {
+    font-family: 'Material Symbols Outlined';
+    font-weight: 400;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'liga';
+    color: #eac349;
+    user-select: none;
+  }
+  }

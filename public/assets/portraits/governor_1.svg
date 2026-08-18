@@ -1,0 +1,17 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+  <defs>
+    <linearGradient id='skin' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' style='stop-color:#f5d0a9;stop-opacity:1' />
+      <stop offset='100%' style='stop-color:#d4a373;stop-opacity:1' />
+    </linearGradient>
+    <linearGradient id='velvet' x1='0%' y1='0%' x2='0%' y2='100%'>
+      <stop offset='0%' style='stop-color:#1e293b;stop-opacity:1' />
+      <stop offset='100%' style='stop-color:#0f172a;stop-opacity:1' />
+    </linearGradient>
+  </defs>
+  <circle cx='50' cy='50' r='48' fill='#0c0f17' stroke='#eac349' stroke-width='2'/>
+  <path d='M20 100 Q50 40 80 100' fill='url(#velvet)' />
+  <circle cx='50' cy='40' r='20' fill='url(#skin)' />
+  <path d='M40 35 Q50 30 60 35' stroke='#000' fill='none' stroke-width='1' />
+  <rect x='45' y='60' width='10' height='2' fill='#eac349' />
+</svg>

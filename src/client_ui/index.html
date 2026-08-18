@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patrician III — Liga Hanseática</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚓</text></svg>">
+<link rel="stylesheet" href="design-system.css">
+</head>
+<body>
+<div id="gameContainer">
+  <div id="mapPanel">
+
+    <canvas id="minimap"></canvas>
+    <canvas id="priceHistory"></canvas>
+    <canvas id="minimapRoutes"></canvas>
+    <div id="inboxIcon" title="Mensajes">📨</div>
+    <div id="constructionDropdown">
+      <button>🏗 Construir</button>
+      <div id="constructionMenu">
+        <div data-build="poor">Vivienda pobres (entramado)</div>
+        <div data-build="middle">Vivienda clase media (ladrillo)</div>
+        <div data-build="rich">Vivienda ricos (señorial)</div>
+        <div data-build="timber">Aserradero ($1500)</div>
+        <div data-build="bakery">Panadería ($1200)</div>
+        <div data-build="brewery">Cervecería ($2000)</div>
+        <div data-build="weavery">Telar ($2500)</div>
+        <div data-build="well">Pozo ($500)</div>
+        <div data-build="hospital">Hospital ($1500)</div>
+        <div data-build="bath">Baños ($1000)</div>
+      </div>
+    </div>
+    <div id="minimapFilters">
+      <button data-filter="routes" class="active">Rutas</button>
+      <button data-filter="names" class="active">Nombres</button>
+      <button data-filter="climate">Clima</button>
+      <button data-filter="legend" class="active">Leyenda</button>
+    </div>
+    <div id="tooltip"></div>
+    <div id="flyText"></div>
+    <div id="splash">
+      <div class="cog"></div>
+      <h1>PATRICIAN III</h1>
+      <p>Liga Hanseática — Edición 2D</p>
+      <span class="hint">Haz clic para comenzar</span>
+    </div>
+  </div>
+  <div id="uiPanel">
+    <div id="topBar">
+      <div class="flex items-center gap-base">
+        <span class="gold" id="goldDisplay">$0</span>
+        <span class="date" id="dateDisplay">1 Ene 1300</span>
+        <span class="cityName" id="cityNameTop">Lübeck</span>
+      </div>
+      <div class="flex items-center gap-xs">
+        <span class="companyVal">Valor: <span id="companyValue">$0</span></span>
+        <span class="rank" id="rankDisplay">Comerciante</span>
+      </div>
+      <div class="flex items-center gap-xs">
+        <button class="timeBtn" data-speed="0">⏸</button>
+        <button class="timeBtn" data-speed="1">▶</button>
+        <button class="timeBtn active" data-speed="2">▶▶</button>
+        <button class="timeBtn" data-speed="3">▶▶▶</button>
+      </div>
+    </div>
+    <div id="newsTicker"><span id="newsText">Bienvenido a la Liga Hanseática — 1300 d.C.</span></div>
+
+    <div class="panel-section">
+      <h3>Ciudad</h3>
+      <select id="citySelect" class="hansa-select"></select>
+      <div class="flex justify-between text-muted text-sm mt-base">
+        <span id="cityPop">Pob: 0</span>
+        <span id="cityWealth">Arca: $0</span>
+        <span id="cityRep">Rep: 0</span>
+      </div>
+      <div class="text-xs text-muted mt-xs" id="cityHousing"></div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Mercado</h3>
+      <div id="marketTable"></div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Barco</h3>
+      <div id="shipPanel">
+        <div class="ship-info">
+          <div class="ship-name" id="shipName">—</div>
+          <div class="stat" id="shipStats">Carga: 0/0 Trip: 0 HP: 0/0</div>
+          <div class="stat" id="shipCargo">vacío</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Comercio</h3>
+      <div class="trade-controls mb-xs">
+        <select id="tradeGoodSelect" class="hansa-select" style="flex:1;"></select>
+        <input type="number" id="tradeQty" value="1" min="1" max="999" class="hansa-input" style="width:60px;">
+        <button class="btn btn-buy" id="btnBuy">COMPRAR</button>
+        <button class="btn btn-sell" id="btnSell">VENDER</button>
+      </div>
+      <div class="text-xs text-muted text-center" id="tradeInfo"></div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Industria</h3>
+      <div id="factoryList"></div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Eventos</h3>
+      <div id="eventList"></div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Misiones</h3>
+      <div id="missionList"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { GameEngine } from '../GameEngine.js';
+  import { GOODS } from '../database/goods.js';
+  import { CITIES } from '../database/cities.js';
+  import { PriceHistoryChart } from './graphics.js';
+  import { UIManager } from './ui_core.js';
+  import { AudioManager } from './audio.js';
+
+  // ---- ENGINE ----
+  const engine = new GameEngine();
+  window._gameOverShown = false;
+
+  // ---- MAP CANVAS (2D) ----
+  const mapPanel = document.getElementById('mapPanel');
+  const mainCanvas = document.createElement('canvas');
+  mainCanvas.id = 'mainMap';
+  mainCanvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;';
+  mapPanel.insertBefore(mainCanvas, mapPanel.firstChild);
+  const ctx = mainCanvas.getContext('2d');
+
+  const uiManager = new UIManager(engine, null, document.getElementById('gameContainer'));
+  const audio = new AudioManager();
+  window.audio = audio;
+  let audioResumed = false;
+  document.addEventListener('click', () => { if (!audioResumed) { audio.resume(); audioResumed = true; setTimeout(() => audio.playSeaAmbience(), 1000); } }, { once: true });
+
+  // Show main menu on startup
+  setTimeout(() => uiManager.toggleScreen('main_menu'), 100);
+
+  // Global function to start a new game from main menu
+  window.startNewGame = function(playerName, homeCity) {
+    uiManager.toggleScreen('main_menu');
+    engine.newGame(playerName, homeCity);
+    engine.start();
+    window._gameOverShown = false;
+  };
+
+  // ---- 2D CANVAS OVERLAYS ----
+  const minimap = document.getElementById('minimap');
+  const mctx = minimap.getContext('2d');
+  const minimapRoutes = document.getElementById('minimapRoutes');
+  const mrctx = minimapRoutes.getContext('2d');
+  const pHistCanvas = document.getElementById('priceHistory');
+  const pHistCtx = pHistCanvas.getContext('2d');
+  const priceChart = new PriceHistoryChart(40);
+
+  // ---- STATE ----
+  let selectedCityId = 'lubeck';
+  let tickCount = 0;
+  let splashActive = true;
+  let gameSpeed = 2;
+  let paused = false;
+  let newsQueue = ['Bienvenido a la Liga Hanseática — 1300 d.C.','Comercio y prosperidad te esperan','Construye tu imperio comercial','Protege tus rutas de los piratas'];
+  let notifications = [];
+  let hasUnreadMail = false;
+  let minimapShowRoutes = true, minimapShowNames = true, minimapShowClimate = false;
+  let mapPanX = 550, mapPanY = 350, mapZoom = 1.0;
+  let hoveredCityId = null;
+
+  // ---- MONTHS (global scope for tick handler) ----
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  // ---- SPLASH ----
+  document.getElementById('splash').addEventListener('click', () => {
+    document.getElementById('splash').classList.add('fade');
+    splashActive = false;
+    setTimeout(() => { document.getElementById('splash').style.display = 'none'; }, 1000);
+  });
+  setTimeout(() => {
+    if (splashActive) {
+      document.getElementById('splash').classList.add('fade');
+      splashActive = false;
+      setTimeout(() => { document.getElementById('splash').style.display = 'none'; }, 1000);
+    }
+  }, 3000);
+
+  // ---- RESIZE ----
+  function resize() {
+    const rect = mainCanvas.parentElement.getBoundingClientRect();
+    mainCanvas.width = rect.width;
+    mainCanvas.height = rect.height;
+    minimap.width = 160; minimap.height = 110;
+    minimapRoutes.width = 160; minimapRoutes.height = 110;
+    pHistCanvas.width = 160; pHistCanvas.height = 80;
+  }
+  window.addEventListener('resize', resize);
+  new ResizeObserver(resize).observe(mainCanvas.parentElement);
+  resize();
+
+  // ---- MAIN MAP DRAWING ----
+  function drawMainMap() {
+    const w = mainCanvas.width, h = mainCanvas.height;
+    // Background gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#0a1428');
+    grad.addColorStop(0.3, '#0f1f3a');
+    grad.addColorStop(0.7, '#0a1a2e');
+    grad.addColorStop(1, '#0a121f');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Grid pattern (water waves)
+    ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < w; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let y = 0; y < h; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    // Transform: center on mapPanX/Y, scale by mapZoom
+    const scale = mapZoom * 0.55;
+    const ox = w/2 - mapPanX * scale;
+    const oy = h/2 - (mapPanY - 180) * scale;
+    const tx = (x, y) => [ox + x * scale, oy + (y - 180) * scale];
+
+    // Draw routes
+    if (minimapShowRoutes) {
+      ctx.strokeStyle = 'rgba(200,168,88,0.12)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 6]);
+      for (const c1 of CITIES) for (const c2 of CITIES) {
+        if (c1.id < c2.id && Math.hypot(c1.x-c2.x, c1.y-c2.y) < 250) {
+          const [x1,y1] = tx(c1.x, c1.y);
+          const [x2,y2] = tx(c2.x, c2.y);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        }
+      }
+      ctx.setLineDash([]);
+    }
+
+    // Draw city markers
+    for (const city of CITIES) {
+      const [cx, cy] = tx(city.x, city.y);
+      const isShallow = city.draft === 'shallow';
+      const isSelected = city.id === selectedCityId;
+      const isHovered = city.id === hoveredCityId;
+
+      // Glow for selected
+      if (isSelected) {
+        ctx.shadowColor = '#ffe088';
+        ctx.shadowBlur = 20;
+      }
+
+      // Building icon
+      const r = isShallow ? 5 : 7;
+      ctx.fillStyle = isSelected ? '#ffe088' : (isShallow ? '#4a8a5a' : '#b09050');
+      ctx.beginPath();
+      // Draw a house/castle shape
+      ctx.moveTo(cx, cy - r * 1.4);
+      ctx.lineTo(cx + r, cy - r * 0.3);
+      ctx.lineTo(cx + r, cy + r * 0.5);
+      ctx.lineTo(cx - r, cy + r * 0.5);
+      ctx.lineTo(cx - r, cy - r * 0.3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = isSelected ? '#fff' : 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = isSelected ? 1.5 : 0.5;
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+
+      // City name
+      if (minimapShowNames || isHovered || isSelected) {
+        ctx.fillStyle = isSelected ? '#ffe088' : (isHovered ? '#d0d0c0' : 'rgba(200,200,180,0.6)');
+        ctx.font = isSelected ? 'bold 10px Montserrat,sans-serif' : '9px Montserrat,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(city.name, cx, cy - r * 1.4 - 4);
+      }
+
+      // Small dot for city location
+      ctx.beginPath();
+      ctx.arc(cx, cy, isShallow ? 2 : 3, 0, Math.PI*2);
+      ctx.fillStyle = isSelected ? '#ffe088' : (isShallow ? '#4a8a5a' : '#b09050');
+      ctx.fill();
+    }
+
+    // Draw player ships
+    const fleet = engine.player?.fleet || [];
+    for (const s of fleet) {
+      let sx2, sy2;
+      if (s.inTransit && s.transitX != null) {
+        [sx2, sy2] = tx(s.transitX, s.transitY);
+      } else {
+        const c = CITIES.find(c2 => c2.id === (s.currentCityId || engine.player.currentCityId));
+        if (!c) continue;
+        [sx2, sy2] = tx(c.x + 10, c.y - 10);
+      }
+      // Draw ship as small sailboat
+      ctx.fillStyle = '#8ab4f8';
+      ctx.beginPath();
+      ctx.moveTo(sx2, sy2 - 5);
+      ctx.lineTo(sx2 + 4, sy2 + 3);
+      ctx.lineTo(sx2 - 4, sy2 + 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#6a94d8';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Mast
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(sx2, sy2 - 5);
+      ctx.lineTo(sx2, sy2 - 3);
+      ctx.stroke();
+    }
+
+    // Draw pirate ships
+    if (engine.combatManager?.pirateFleets) {
+      for (const pf of engine.combatManager.pirateFleets) {
+        if (!pf.ships) continue;
+        for (const ps of pf.ships) {
+          let px = ps.x, py = ps.y;
+          if (!px && pf.patrolRegion) {
+            px = (pf.patrolRegion.xMin + pf.patrolRegion.xMax) / 2;
+            py = (pf.patrolRegion.yMin + pf.patrolRegion.yMax) / 2;
+          }
+          if (px == null) continue;
+          const [ppx, ppy] = tx(px, py);
+          ctx.fillStyle = '#ff3333';
+          ctx.beginPath();
+          ctx.arc(ppx, ppy, 4, 0, Math.PI*2);
+          ctx.fill();
+          ctx.strokeStyle = '#ff0000';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          // Crossbones
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(ppx-3, ppy-3); ctx.lineTo(ppx+3, ppy+3);
+          ctx.moveTo(ppx+3, ppy-3); ctx.lineTo(ppx-3, ppy+3);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Draw AI ships
+    if (engine.aiSystem?.agents) {
+      for (const agent of Object.values(engine.aiSystem.agents)) {
+        if (!agent.fleet) continue;
+        for (const as of agent.fleet) {
+          let ax, ay;
+          if (as.inTransit && as.transitX != null) {
+            [ax, ay] = tx(as.transitX, as.transitY);
+          } else {
+            const ac = CITIES.find(c2 => c2.id === (as.currentCityId));
+            if (!ac) continue;
+            [ax, ay] = tx(ac.x - 10, ac.y + 5);
+          }
+          ctx.fillStyle = '#555';
+          ctx.beginPath();
+          ctx.arc(ax, ay, 2.5, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+    }
+  }
+
+  // ---- MINIMAP DRAWING ----
+  function drawMinimap() {
+    const mw = 160, mh = 110;
+    mctx.fillStyle = 'rgba(10,12,8,0.9)';
+    mctx.fillRect(0, 0, mw, mh);
+    if (minimapShowRoutes) {
+      mrctx.clearRect(0, 0, mw, mh);
+      mrctx.strokeStyle = 'rgba(200,168,88,0.15)';
+      mrctx.lineWidth = 0.5;
+      for (const c1 of CITIES) for (const c2 of CITIES) {
+        if (c1.id < c2.id && Math.hypot(c1.x-c2.x, c1.y-c2.y) < 250) {
+          mrctx.beginPath();
+          mrctx.moveTo(c1.x*mw/1100, (c1.y-180)*mh/700);
+          mrctx.lineTo(c2.x*mw/1100, (c2.y-180)*mh/700);
+          mrctx.stroke();
+        }
+      }
+    } else mrctx.clearRect(0, 0, mw, mh);
+    const sx = mw / 1100, sy = mh / 700;
+    const fleet = engine.player?.fleet || [];
+    for (const city of CITIES) {
+      const mx = city.x * sx;
+      const my = (city.y - 180) * sy;
+      const isShallow = city.draft === 'shallow';
+      mctx.beginPath();
+      mctx.arc(mx, my, isShallow ? 2.5 : 3.5, 0, Math.PI * 2);
+      mctx.fillStyle = city.id === selectedCityId ? '#ffd700' : (isShallow ? '#4a7a3a' : '#a08040');
+      mctx.fill();
+      if (city.id === selectedCityId) {
+        mctx.strokeStyle = '#ffd700';
+        mctx.lineWidth = 1.5;
+        mctx.stroke();
+      }
+      if (minimapShowNames) {
+        mctx.fillStyle = city.id === selectedCityId ? '#ffd700' : '#8a8a6a';
+        mctx.font = '7px sans-serif';
+        mctx.textAlign = 'center';
+        mctx.fillText(city.name.slice(0, 5), mx, my - 5);
+      }
+    }
+    fleet.forEach(s => {
+      if (s.inTransit && s.transitX != null) {
+        const mx = s.transitX * sx;
+        const my = (s.transitY - 180) * sy;
+        mctx.beginPath();
+        mctx.arc(mx, my, 2, 0, Math.PI*2);
+        mctx.fillStyle = '#fff';
+        mctx.fill();
+      } else if (!s.inTransit) {
+        const c = CITIES.find(c2 => c2.id === (s.currentCityId || engine.player.currentCityId));
+        if (c) {
+          const mx = c.x * sx;
+          const my = (c.y - 180) * sy;
+          mctx.beginPath();
+          mctx.arc(mx+3, my-3, 1.5, 0, Math.PI*2);
+          mctx.fillStyle = '#8ab4f8';
+          mctx.fill();
+        }
+      }
+    });
+    // Pirate ships
+    if (engine.combatManager?.fleetAI?.pirateFleets) {
+      for (const pf of engine.combatManager.fleetAI.pirateFleets) {
+        if (!pf.ships) continue;
+        for (const ps of pf.ships) {
+          let px = ps.x, py = ps.y;
+          if (!px && pf.patrolRegion) { px = (pf.patrolRegion.xMin+pf.patrolRegion.xMax)/2; py = (pf.patrolRegion.yMin+pf.patrolRegion.yMax)/2; }
+          if (px == null) continue;
+          mctx.beginPath();
+          mctx.arc(px*sx, (py-180)*sy, 2.5, 0, Math.PI*2);
+          mctx.fillStyle = '#ff3333'; mctx.fill();
+          mctx.strokeStyle = '#ff0000'; mctx.lineWidth = 1; mctx.stroke();
+        }
+      }
+    }
+    // AI ships
+    if (engine.aiSystem?.agents) {
+      for (const agent of Object.values(engine.aiSystem.agents)) {
+        if (!agent.fleet) continue;
+        for (const as of agent.fleet) {
+          let ax, ay;
+          if (as.inTransit && as.transitX != null) { ax = as.transitX*sx; ay = (as.transitY-180)*sy; }
+          else {
+            const ac = CITIES.find(c2 => c2.id === (as.currentCityId));
+            if (!ac) continue;
+            ax = ac.x*sx; ay = (ac.y-180)*sy;
+          }
+          mctx.beginPath(); mctx.arc(ax, ay, 2, 0, Math.PI*2);
+          mctx.fillStyle = '#444'; mctx.fill();
+        }
+      }
+    }
+    // Viewport rect on minimap
+    const vw = mainCanvas.width, vh = mainCanvas.height;
+    const scale = mapZoom * 0.55;
+    const vx = (mapPanX - vw/(2*scale)) * sx;
+    const vy = (mapPanY - 180 - vh/(2*scale)) * sy;
+    const vw2 = (vw/scale) * sx;
+    const vh2 = (vh/scale) * sy;
+    mctx.strokeStyle = 'rgba(255,215,0,0.4)';
+    mctx.lineWidth = 1;
+    mctx.strokeRect(vx, vy, vw2, vh2);
+  }
+
+  function drawPriceHistory() {
+    const w = 160, h = 80;
+    const city = engine.server.world.getCity(selectedCityId);
+    if (!city) return;
+    const prices = {};
+    for (const [id] of Object.entries(city.market.goods)) {
+      prices[id] = city.market.getPrice(id);
+    }
+    priceChart.recordPrices(prices);
+    const goods = GOODS.slice(0, 4);
+    priceChart.drawAllCharts(pHistCtx, 3, 3, 154, 74, goods);
+  }
+
+  function toggleLegend() {
+    let legend = document.getElementById('minimapLegend');
+    if (!legend) {
+      legend = document.createElement('div');
+      legend.id = 'minimapLegend';
+      legend.style.cssText = 'position:absolute;bottom:245px;right:12px;background:rgba(0,31,63,0.9);border:1px solid rgba(228,228,204,0.1);border-radius:8px;padding:8px 12px;font-size:9px;z-index:11;backdrop-filter:blur(8px);color:#e4e4cc;line-height:1.8;';
+      legend.innerHTML = `
+        <div><span style="color:#ffd700;">●</span> Ciudad activa</div>
+        <div><span style="color:#4a7a3a;">●</span> Puerto fluvial</div>
+        <div><span style="color:#a08040;">●</span> Puerto marítimo</div>
+        <div><span style="color:#ff3333;">●</span> Piratas</div>
+        <div><span style="color:#444;">●</span> Barcos IA</div>
+        <div><span style="color:#fff;">●</span> Tus barcos</div>
+      `;
+      document.getElementById('mapPanel').appendChild(legend);
+    } else {
+      legend.style.display = legend.style.display === 'none' ? 'block' : 'none';
+    }
+  }
+
+  // ---- NEWS ----
+  function addNews(msg) {
+    newsQueue.push(msg);
+    if (newsQueue.length > 20) newsQueue.shift();
+    const el = document.getElementById('newsText');
+    if (el) {
+      el.style.animation = 'none';
+      el.offsetHeight;
+      el.textContent = newsQueue.join(' · ');
+      el.style.animation = 'tickerScroll ' + Math.max(20, newsQueue.length*3) + 's linear infinite';
+    }
+  }
+
+  // ---- UI UPDATE ----
+  // ---- CITY HIT TEST (2D) ----
+  function getCityAtPixel(clientX, clientY) {
+    const rect = mainCanvas.getBoundingClientRect();
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+    const w = mainCanvas.width, h = mainCanvas.height;
+    const scale = mapZoom * 0.55;
+    const ox = w/2 - mapPanX * scale;
+    const oy = h/2 - (mapPanY - 180) * scale;
+    const worldX = (px - ox) / scale;
+    const worldY = (py - oy) / scale + 180;
+    for (const c of CITIES) {
+      if (Math.hypot(worldX - c.x, worldY - c.y) < 20) return c.id;
+    }
+    return null;
+  }
+
+  function updateUI() {
+    const state = engine.getGameState();
+    if (!state || !state.player) return;
+
+    const gold = state.player.gold || 0;
+    document.getElementById('goldDisplay').textContent = `$${gold.toFixed(0)}`;
+    document.getElementById('rankDisplay').textContent = state.player.rank;
+    const date = state.simulation.date;
+    document.getElementById('dateDisplay').textContent = `${date.day} ${months[date.month-1]} ${date.year}`;
+    document.getElementById('cityNameTop').textContent = CITIES.find(c => c.id === (engine.player.currentCityId))?.name || 'Lübeck';
+
+    const fleetVal = (engine.player.fleet?.length||0) * 5000;
+    const goldVal = gold;
+    document.getElementById('companyValue').textContent = `$${(goldVal + fleetVal).toFixed(0)}`;
+
+    const citySelect = document.getElementById('citySelect');
+    if (citySelect.options.length === 0) {
+      for (const c of CITIES) {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.name} (${c.production})`;
+        citySelect.appendChild(opt);
+      }
+    }
+    citySelect.value = selectedCityId;
+
+    const cd = state.simulation.cities[selectedCityId];
+    if (cd) {
+      const city = engine.server.world.getCity(selectedCityId);
+      document.getElementById('cityPop').textContent = `Pop: ${cd.population.toLocaleString()}`;
+      document.getElementById('cityWealth').textContent = `Chest: $${(city?.cityChest || 0).toFixed(0)}`;
+      document.getElementById('cityRep').textContent = `Rep: ${Math.round(engine.politicalSystem.reputationByCity[selectedCityId] || 0)}`;
+      document.getElementById('cityHousing').textContent =
+        `Housing: P:${city?.housingPoor || 0} (${Math.round((city?.housingOccupancyPoor||0)*100)}%) M:${city?.housingMiddle || 0} (${Math.round((city?.housingOccupancyMiddle||0)*100)}%) R:${city?.housingRich || 0} (${Math.round((city?.housingOccupancyRich||0)*100)}%)`;
+
+      const sorted = Object.entries(cd.prices).sort((a, b) => a[1].price - b[1].price);
+      document.getElementById('marketTable').innerHTML =
+        '<table class="goods-table"><tr><th>Bien</th><th>Precio</th><th>Stock</th><th></th></tr>' +
+        sorted.slice(0, 12).map(([id, info]) => {
+          const g = GOODS.find(x => x.id === id);
+          const icon = g?.volume === 'cargo' ? '\u25A3' : '\u25CF';
+          return `<tr>
+            <td class="name">${icon} ${g?.name || id}</td>
+            <td class="price">$${info.price.toFixed(2)}</td>
+            <td class="stock">${Math.round(info.stock)}</td>
+            <td style="font-size:9px;color:#6a6a4a">${info.stock < (g?.sMin||100) ? '\u26A1' : info.stock > (g?.sMax||500) ? '\u25BD' : '\u00B7'}</td>
+          </tr>`;
+        }).join('') + '</table>';
+
+      const events = Object.entries(cd.events).filter(([,v]) => v).map(([k]) => k);
+      document.getElementById('eventList').innerHTML = events.length
+        ? events.map(e => `<div class="event-alert">\u26A0 ${e.toUpperCase()}</div>`).join('')
+        : '<div style="color:#5a5a3a;font-size:11px">Paz y orden en la ciudad</div>';
+
+      if (events.length) events.forEach(e => addNews(e + ' en ' + (CITIES.find(c => c.id === selectedCityId)?.name||'')));
+
+      if (city) {
+        const built = city.factories.filter(f => f.built);
+        document.getElementById('factoryList').innerHTML = built.length
+          ? built.map(f =>
+            `<div class="ship-info" style="font-size:10px;padding:4px 8px;border-left-color:#4a6a2a;display:flex;justify-content:space-between;">
+              <span style="color:#8ab4f8">\u25A6 ${f.name}</span>
+              <span class="stat">${f.workers}/${f.maxWorkers} trab. | ${Math.round((f.workers/(f.maxWorkers||1))*100)}%</span>
+            </div>`
+          ).join('')
+          : '<div style="color:#5a5a3a;font-size:11px">Sin fábricas construidas</div>';
+      }
+    }
+
+    if (engine.player.fleet.length > 0) {
+      const ship = engine.player.fleet[0];
+      document.getElementById('shipName').textContent = `\u{2693} ${ship.name} Lv.${ship.upgradeLevel}`;
+      document.getElementById('shipStats').textContent =
+        `Carga: ${ship.cargoUsed||0}/${ship.cargoCapacity||0} · Trip: ${ship.crew||0}/${ship.crewMax||0} · HP: ${Math.round(ship.hp||0)}/${ship.hpMax||100}`;
+      const cargo = Object.entries(ship.cargo||{}).filter(([,q])=>q>0).map(([id, q]) => {
+        const g = GOODS.find(x => x.id === id);
+        const vol = g?.volume === 'cargo' ? '\u25A3' : '\u25CF';
+        return `${vol}${g?.name||id}:${q}`;
+      }).join(', ') || 'vacío';
+      document.getElementById('shipCargo').textContent = cargo;
+      if (ship.inTransit) {
+        document.getElementById('shipCargo').textContent += ` (ruta ${Math.round((ship.transitProgress||0) * 100)}%)`;
+      }
+    } else {
+      document.getElementById('shipName').textContent = '—';
+      document.getElementById('shipStats').textContent = 'Flota vacía. Construye un barco en el astillero.';
+      document.getElementById('shipCargo').textContent = '';
+    }
+
+    const tradGood = document.getElementById('tradeGoodSelect').value;
+    if (cd?.prices[tradGood]) {
+      const g = GOODS.find(x => x.id === tradGood);
+      document.getElementById('tradeInfo').textContent =
+        `${g?.name||tradGood}: $${cd.prices[tradGood].price.toFixed(2)} / ud`;
+    }
+
+    const mData = engine.getMissionUIData();
+    let mHtml = '';
+    if (mData.available?.length) {
+      mHtml += '<div style="font-size:10px;color:#8ab4f8;margin-bottom:4px">Disponibles:</div>';
+      for (const m of mData.available) {
+        mHtml += `<div class="ship-info" style="cursor:pointer;font-size:10px;padding:4px 8px;border-left-color:#8ab4f8"
+          onclick="startMission('${m.id}')">
+          <span style="color:#ffd700">${m.name}</span>
+          <span class="stat"> · $${m.rewards.gold} +${m.rewards.reputation}rep</span>
+        </div>`;
+      }
+    }
+    if (mData.active?.length) {
+      mHtml += '<div style="font-size:10px;color:#ffd700;margin:4px 0">Activas:</div>';
+      for (const m of mData.active) {
+        const p = m.progress || {};
+        const bar = m.type === 'hunt_pirates' ? `${p.piratesKilled||0}/${p.target||1}` :
+                    m.type === 'deliver_grain' ? `${p.delivered||0}/${p.target||1}` :
+                    m.type === 'create_land_route' ? (p.routeBuilt ? '\u2713' : '\u27F3') : '\u00B7';
+        const days = m.timeLimit - (engine.server.world.totalDays - (m.startedAt||0));
+        mHtml += `<div class="ship-info" style="font-size:10px;padding:4px 8px;">${m.name} [${bar}] ${days}d</div>`;
+      }
+    }
+    if (!mHtml) mHtml = '<div style="color:#5a5a3a;font-size:11px">Sin misiones. Aumenta tu rango.</div>';
+    document.getElementById('missionList').innerHTML = mHtml;
+
+    drawPriceHistory();
+  }
+
+  // ---- EVENTS ----
+  document.getElementById('citySelect').addEventListener('change', e => {
+    selectedCityId = e.target.value;
+    engine.player.currentCityId = selectedCityId;
+    if (engine.player.fleet[0]) engine.player.fleet[0].currentCityId = selectedCityId;
+  });
+
+  document.getElementById('btnBuy').addEventListener('click', () => {
+    const id = document.getElementById('tradeGoodSelect').value;
+    const q = parseInt(document.getElementById('tradeQty').value) || 1;
+    const city = engine.server.world.getCity(engine.player?.currentCityId);
+    if (!city) return;
+    if (!engine.player?.fleet?.length) {
+      showFlyText('Flota vacía. Construye un barco en el astillero.', '#c44');
+      return;
+    }
+    const price = city.market.getPrice(id);
+    if ((engine.player?.gold || 0) < price * q) {
+      showFlyText('No tienes oro suficiente', '#c44');
+      addNotification('No tienes oro suficiente para comprar ' + q + ' uds de ' + (GOODS.find(g=>g.id===id)?.name||id), 'trade');
+      return;
+    }
+    const r = engine.playerBuy(id, q);
+    if (r) {
+      showFlyText('-' + r.cost.toFixed(0), '#ff6');
+    }
+  });
+
+  document.getElementById('btnSell').addEventListener('click', () => {
+    const id = document.getElementById('tradeGoodSelect').value;
+    const q = parseInt(document.getElementById('tradeQty').value) || 1;
+    const city = engine.server.world.getCity(engine.player?.currentCityId);
+    if (!city) return;
+    if (!engine.player?.fleet?.length) {
+      showFlyText('Flota vacía. Construye un barco en el astillero.', '#c44');
+      return;
+    }
+    const r = engine.playerSell(id, q);
+    if (r) {
+      showFlyText('+' + r.revenue.toFixed(0), '#4a8');
+    }
+  });
+
+  const tradeSelect = document.getElementById('tradeGoodSelect');
+  if (tradeSelect.options.length === 0) {
+    for (const g of GOODS) {
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = `${g.volume === 'cargo' ? '\u25A3' : '\u25CF'} ${g.name}`;
+      tradeSelect.appendChild(opt);
+    }
+  }
+
+  window.startMission = function(id) {
+    const r = engine.startMission(id);
+    if (r.success) {
+      showFlyText('Misión: ' + r.mission.name + '!', '#8ab4f8');
+      addNews('Nueva misión: ' + r.mission.name);
+    }
+  };
+
+  function showFlyText(text, color = '#ffd700') {
+    const el = document.getElementById('flyText');
+    const div = document.createElement('div');
+    div.textContent = text;
+    div.style.cssText = `position:absolute;left:50%;top:50%;color:${color};
+      font-size:18px;font-weight:bold;text-shadow:0 0 8px rgba(0,0,0,0.8);
+      transition:all 0.8s ease-out;pointer-events:none;z-index:50;
+      transform:translate(-50%,-50%);`;
+    el.appendChild(div);
+    setTimeout(() => { div.style.top = '40%'; div.style.opacity = '0'; }, 50);
+    setTimeout(() => div.remove(), 900);
+  }
+
+  function addNotification(msg, type = 'info') {
+    notifications.push({ msg, type, time: Date.now() });
+    hasUnreadMail = true;
+    document.getElementById('inboxIcon').classList.add('hasMail');
+    addNews('\u{1F4E8} ' + msg);
+    if (notifications.length > 20) notifications.shift();
+  }
+
+  // ---- TOOLTIP (2D canvas hit test) ----
+  mainCanvas.addEventListener('mousemove', (e) => {
+    const tip = document.getElementById('tooltip');
+    const cityId = getCityAtPixel(e.clientX, e.clientY);
+    if (cityId) {
+      hoveredCityId = cityId;
+      const city = engine.server.world.getCity(cityId);
+      const cityDef = CITIES.find(c => c.id === cityId);
+      if (city && cityDef) {
+        const rect = mainCanvas.getBoundingClientRect();
+        tip.style.display = 'block';
+        tip.style.left = (e.clientX - rect.left + 15) + 'px';
+        tip.style.top = (e.clientY - rect.top + 15) + 'px';
+        const goods = GOODS.slice(0, 4).map(g =>
+          `${g.name}: $${city.market.getPrice(g.id).toFixed(2)} (${Math.round(city.market.goods[g.id]?.stock || 0)})`
+        ).join('<br>');
+        const cdState = engine.getGameState()?.simulation?.cities?.[cityId];
+        const hasEvents = Object.entries(cdState?.events||{}).filter(([,v])=>v).map(([k])=>{
+          if (k==='famine') return '\uD83C\uDF5E\u26D4 Falta comida';
+          if (k==='plague') return '\u271D\uFE0F Peste';
+          if (k==='siege') return '\uD83C\uDFF0\uD83D\uDEE1\uFE0F Asedio';
+          return '';
+        }).filter(Boolean).join('<br>');
+        tip.innerHTML = `<b style="color:#ffd700">${cityDef.name}</b><br>
+          Pop: ${city.totalPopulation.toLocaleString()}<br>
+          Draft: ${cityDef.draft}<br>${goods}
+          ${hasEvents ? '<br><span style="color:#c44;">'+hasEvents+'</span>' : ''}`;
+      }
+    } else {
+      hoveredCityId = null;
+      tip.style.display = 'none';
+    }
+  });
+
+  mainCanvas.addEventListener('click', (e) => {
+    const cityId = getCityAtPixel(e.clientX, e.clientY);
+    if (cityId) {
+      selectedCityId = cityId;
+      engine.player.currentCityId = cityId;
+      if (engine.player.fleet[0]) engine.player.fleet[0].currentCityId = cityId;
+    }
+  });
+
+  minimap.addEventListener('click', e => {
+    const rect = minimap.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const sx = 160 / 1100, sy = 110 / 700;
+    for (const c of CITIES) {
+      if (Math.hypot(mx - c.x * sx, my - (c.y - 180) * sy) < 6) {
+        selectedCityId = c.id;
+        mapPanX = c.x;
+        mapPanY = c.y;
+        break;
+      }
+    }
+  });
+
+  // ---- TICK SYNC ----
+  engine.server.eventBus.on('tick', (state) => {
+    tickCount++;
+    if (tickCount % 10 === 0) {
+      addNews('Día ' + state.date.day + ' de ' + months[state.date.month-1] + ' de ' + state.date.year);
+    }
+    if (tickCount % 15 === 0) {
+      const fleet = engine.player?.fleet || [];
+      fleet.forEach(s => {
+        if (s.inTransit && s.transitProgress >= 1) {
+          addNotification('Convoy ' + s.name + ' ha llegado a puerto', 'convoy');
+        }
+      });
+    }
+    if (tickCount % 30 === 0 && Math.random() > 0.7) {
+      const randCity = CITIES[Math.floor(Math.random() * CITIES.length)];
+      const events = ['Hambruna', 'Incendio', 'Fiebre', 'Mercado saturado', 'Buque perdido'];
+      const evt = events[Math.floor(Math.random() * events.length)];
+      addNotification(evt + ' reportado en ' + randCity.name, 'event');
+    }
+  });
+
+  // ---- GAME LOOP ----
+  let lastTime = 0;
+  function gameLoop(time) {
+    const dt = (time - lastTime) / 1000;
+    lastTime = time;
+
+    drawMainMap();
+    drawMinimap();
+    updateUI();
+    uiManager.update();
+    uiManager.updateNavGold();
+
+    const gs = engine.getGameStatus?.();
+    if (gs?.gameOver && !window._gameOverShown) {
+      window._gameOverShown = true;
+      setTimeout(() => uiManager.toggleScreen('victoria'), 500);
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // ---- HUD INIT (time controls, minimap filters, construction, inbox) ----
+  function initHUD() {
+    document.querySelectorAll('.timeBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const speed = parseInt(btn.dataset.speed);
+        if (speed === 0) { paused = !paused; }
+        else { paused = false; gameSpeed = speed; }
+        document.querySelectorAll('.timeBtn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.speed) === (paused?0:gameSpeed)));
+      });
+    });
+    document.querySelectorAll('#minimapFilters button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+        btn.classList.toggle('active');
+        if (filter === 'routes') minimapShowRoutes = btn.classList.contains('active');
+        if (filter === 'names') minimapShowNames = btn.classList.contains('active');
+        if (filter === 'climate') minimapShowClimate = btn.classList.contains('active');
+        if (filter === 'legend') toggleLegend();
+      });
+    });
+    document.querySelectorAll('#constructionMenu div').forEach(el => {
+      el.addEventListener('click', () => {
+        const build = el.dataset.build;
+        const city = engine.server.world.getCity(engine.player?.currentCityId);
+        if (!city) return;
+        const costs = { poor:{gold:300}, middle:{gold:800}, rich:{gold:2000}, timber:{gold:1500}, bakery:{gold:1200}, brewery:{gold:2000}, weavery:{gold:2500}, well:{gold:500}, hospital:{gold:1500}, bath:{gold:1000} };
+        const c = costs[build];
+        if (c && (engine.player?.gold||0) >= c.gold) {
+          engine.player.gold -= c.gold;
+          if (build === 'poor') { city.housingPoor = (city.housingPoor||0)+1; city.housingOccupancyPoor = Math.min(1, (city.housingOccupancyPoor||0)+0.05); }
+          else if (build === 'middle') { city.housingMiddle = (city.housingMiddle||0)+1; city.housingOccupancyMiddle = Math.min(1, (city.housingOccupancyMiddle||0)+0.05); }
+          else if (build === 'rich') { city.housingRich = (city.housingRich||0)+1; city.housingOccupancyRich = Math.min(1, (city.housingOccupancyRich||0)+0.05); }
+          else if (build === 'well') city.hasWell = true;
+          else if (build === 'hospital') city.hasHospital = true;
+          else if (build === 'bath') city.hasBathHouse = true;
+          else {
+            const fac = city.factories.find(f => f.id === build);
+            if (fac) { fac.built = true; fac.workers = 0; }
+          }
+          showFlyText('-' + c.gold, '#ffd700');
+        }
+      });
+    });
+    document.getElementById('inboxIcon')?.addEventListener('click', () => {
+      hasUnreadMail = false;
+      document.getElementById('inboxIcon').classList.remove('hasMail');
+      const msg = notifications.map(n => n.msg).join('\n');
+      if (msg) {
+        showFlyText('Notificaciones', '#8ab4f8');
+        addNews('Últimas notificaciones: ' + notifications.slice(-3).map(n=>n.msg).join(' | '));
+      }
+    });
+    document.getElementById('constructionDropdown').querySelector('button')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = document.getElementById('constructionMenu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', () => {
+      document.getElementById('constructionMenu').style.display = 'none';
+    });
+  }
+
+  initHUD();
+  requestAnimationFrame(gameLoop);
+
+  window.engine = engine;
+  window.CITIES = CITIES;
+  document.getElementById('newsText').textContent = newsQueue.join(' · ');
+
+  console.log('Patrician III — 2D Edition loaded con HUD completo');
+</script>
+</body>
+</html>
