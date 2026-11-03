@@ -66,5 +66,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
     }
-  }
+  },
+  "author": "Aritz Bahamonde Larxé",
+  "license": "UNLICENSED"
 }

@@ -1,34 +1,11 @@
-ACUERDO DE LICENCIA DE USUARIO FINAL (EULA) - HANSEATIC STRATEGOS
+PROPIEDAD INTELECTUAL Y DERECHOS DE AUTOR
+=========================================
 
-Este Acuerdo de Licencia de Usuario Final ("Acuerdo") es un acuerdo legal entre usted (el "Usuario") y Aritz Bahamonde Larxé ("el Autor") para el software Hanseatic Strategos, que incluye archivos informáticos y puede incluir medios asociados, materiales impresos y documentación "en línea" o electrónica (el "Software").
+© 2026 Aritz Bahamonde Larxé. Todos los derechos reservados.
 
-Al instalar, copiar o utilizar de otro modo el Software, usted acepta quedar vinculado por los términos de este Acuerdo. Si no acepta los términos de este Acuerdo, no instale ni utilice el Software.
+Queda estrictamente prohibida la reproducción total o parcial de este software,
+así como su distribución, comercialización, descompilación, ingeniería inversa
+o modificación sin la autorización expresa y por escrito del titular legítimo
+de los derechos: Aritz Bahamonde Larxé.
 
-1. CONCESIÓN DE LICENCIA
-El Autor le otorga una licencia personal, no exclusiva e intransferible para utilizar el Software de acuerdo con los términos de este Acuerdo. Se le permite cargar el Software (por ejemplo, en un ordenador, portátil o tableta) bajo su control. Usted es responsable de garantizar que su dispositivo cumpla los requisitos mínimos del sistema del Software.
-
-2. RESTRICCIONES
-Usted no podrá, ni permitirá a terceros:
-a) Editar, alterar, modificar, adaptar, traducir o cambiar de otro modo la totalidad o parte del Software.
-b) Descompilar, desensamblar o realizar ingeniería inversa del Software o intentar derivar el código fuente, salvo en la medida en que la ley aplicable lo permita expresamente.
-c) Reproducir, copiar, distribuir, revender o utilizar de otro modo el Software para cualquier fin comercial o público.
-d) Permitir que cualquier tercero utilice el Software en nombre de o para el beneficio de cualquier tercero.
-
-3. PROPIEDAD INTELECTUAL Y COPYRIGHT
-El Software y todos los derechos de autor, marcas comerciales y otros derechos de propiedad intelectual asociados al mismo son y seguirán siendo propiedad exclusiva del Autor, Aritz Bahamonde Larxé. El Software está protegido por las leyes de propiedad intelectual de España y los tratados internacionales.
-
-Copyright © 2026 Aritz Bahamonde Larxé. Todos los derechos reservados.
-
-4. LIMITACIÓN DE RESPONSABILIDAD
-El Software se proporciona "tal cual", sin garantía de ningún tipo, expresa o implícita. En ningún caso el Autor será responsable de reclamaciones, daños u otras responsabilidades, ya sea en una acción de contrato, agravio o de otro modo, que surjan de, o en relación con el Software o el uso u otros tratos en el Software.
-
-5. TERMINACIÓN
-Este Acuerdo es efectivo desde la fecha en que usted utiliza por primera vez el Software y continuará hasta que sea terminado. Usted puede terminarlo en cualquier momento destruyendo todas las copias del Software. También terminará inmediatamente si usted no cumple con cualquier término de este Acuerdo.
-
-6. LEY APLICABLE
-Este Acuerdo se regirá e interpretará de acuerdo con las leyes de España. Cualquier disputa que surja en relación con este Acuerdo estará sujeta a la jurisdicción exclusiva de los tribunales de España.
-
----
-Hanseatic Strategos v1.0.0
-Publicado por: Aritz Bahamonde Larxé
-Fecha: 15 de junio de 2026
+Este software es propiedad privativa y exclusiva.
